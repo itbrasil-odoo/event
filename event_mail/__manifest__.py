@@ -4,14 +4,14 @@
 {
     "name": "Event Mail",
     "summary": "Mail settings in events",
-    "version": "19.0.1.0.0",
+    "version": "20.0.1.0.0",
     "author": "Tecnativa, Odoo Community Association (OCA)",
     "license": "AGPL-3",
     "website": "https://github.com/OCA/event",
     "category": "Marketing",
     "depends": ["event"],
     "data": [
-        "security/ir.model.access.csv",
+        "security/ir.access.csv",
         "views/res_config_view.xml",
         "views/event_view.xml",
         "views/event_mail_view.xml",

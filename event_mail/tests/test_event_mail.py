@@ -7,6 +7,8 @@ from odoo.addons.base.tests.common import BaseCommon
 
 
 class EventMailCase(BaseCommon):
+    _test_user_groups = ("base.group_user", "event.group_event_manager")
+
     @classmethod
     def setUpClass(cls):
         """Add some defaults to let the test run without an accounts chart."""

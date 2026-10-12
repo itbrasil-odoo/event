@@ -1,6 +1,6 @@
 # Copyright 2017 Tecnativa - Sergio Teruel
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
-from odoo import api, fields, models
+from odoo import Command, api, fields, models
 
 
 class EventMailSchedulerTemplate(models.Model):
@@ -35,19 +35,23 @@ class EventMailTemplate(models.Model):
         subscription_template = self.env.ref("event.event_subscription")
         reminder_template = self.env.ref("event.event_reminder")
         return [
-            {
-                "notification_type": "mail",
-                "interval_unit": "now",
-                "interval_type": "after_sub",
-                "template_ref": f"mail.template, {subscription_template.id}",
-            },
-            {
-                "notification_type": "mail",
-                "interval_nbr": 10,
-                "interval_unit": "days",
-                "interval_type": "before_event",
-                "template_ref": f"mail.template, {reminder_template.id}",
-            },
+            Command.create(
+                {
+                    "notification_type": "mail",
+                    "interval_unit": "now",
+                    "interval_type": "after_sub",
+                    "template_ref": f"mail.template, {subscription_template.id}",
+                }
+            ),
+            Command.create(
+                {
+                    "notification_type": "mail",
+                    "interval_nbr": 10,
+                    "interval_unit": "days",
+                    "interval_type": "before_event",
+                    "template_ref": f"mail.template, {reminder_template.id}",
+                }
+            ),
         ]
 
     name = fields.Char()
