@@ -18,6 +18,12 @@ from odoo.addons.base.tests.common import BaseCommon
 
 
 class TestEventRegistration(BaseCommon):
+    _test_user_groups = (
+        "base.group_user",
+        "base.group_partner_manager",
+        "event.group_event_manager",
+    )
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -115,6 +121,8 @@ class TestEventRegistration(BaseCommon):
 
     @mute_logger("odoo.models.unlink")
     def test_action_merge(self):
+        # Only an administrator can merge contacts with different emails
+        self.env.user.sudo().group_ids += self.group_system
         partner_1 = self.env["res.partner"].create(
             {"name": "Merge Partner 1", "email": "merge1@test.com"}
         )
