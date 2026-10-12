@@ -1,0 +1,5 @@
+id,name,model_id,group_id/id,operation,domain
+access_event_mail_template_user,access_event_mail_template_user,event.mail.template,event.group_event_user,r,
+access_event_mail_template_manager,access_event_mail_template_manager,event.mail.template,event.group_event_manager,crud,
+event_mail_scheduler_template_user,access_event_mail_scheduler_template_user,event.mail.scheduler.template,event.group_event_user,r,
+event_mail_scheduler_template_manager,access_event_mail_scheduler_template_manager,event.mail.scheduler.template,event.group_event_manager,crud,
