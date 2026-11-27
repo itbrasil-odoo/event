@@ -108,3 +108,34 @@ class EventMailCase(BaseCommon):
             len(self.env.company.event_mail_template_id.scheduler_template_ids),
             "Must be same number of 'Mail Schedule' as in company default template",
         )
+
+    def test_change_template_keeps_sent_schedulers(self):
+        event = self.env["event.event"].create(
+            {
+                "name": "Event sent",
+                "date_begin": "2017-05-01",
+                "date_end": "2017-06-01",
+                "event_mail_template_id": self.template2.id,
+            }
+        )
+        sent = event.event_mail_ids
+        self.assertEqual(len(sent), 1)
+        sent.mail_done = True
+        event.event_mail_template_id = self.template1
+        self.assertIn(sent, event.event_mail_ids)
+        self.assertTrue(sent.exists())
+
+    def test_template_default_follows_event_company(self):
+        env = self.env(su=True)
+        company_b = env["res.company"].create({"name": "Company B"})
+        company_b.event_mail_template_id = self.template2
+        env.company.event_mail_template_id = self.template1
+        event = env["event.event"].create(
+            {
+                "name": "Event B",
+                "date_begin": "2017-05-01",
+                "date_end": "2017-06-01",
+                "company_id": company_b.id,
+            }
+        )
+        self.assertEqual(event.event_mail_template_id, self.template2)
