@@ -8,6 +8,7 @@
         <field name="arch" type="xml">
             <xpath expr="//notebook" position="before">
                 <group>
+                    <field name="event_ids" invisible="1" />
                     <field
                         name="restricted_ticket_ids"
                         widget="many2many_tags"
@@ -22,6 +23,7 @@
         <field name="inherit_id" ref="event.event_question_view_list" />
         <field name="arch" type="xml">
             <field name="answer_ids" position="after">
+                <field name="event_ids" column_invisible="1" />
                 <field name="restricted_ticket_ids" widget="many2many_tags" />
             </field>
         </field>
@@ -34,7 +36,13 @@
                 expr="//field[@name='question_ids']/list/field[@name='answer_ids']"
                 position="after"
             >
-                <field name="restricted_ticket_ids" widget="many2many_tags" />
+                <!-- Inside the event, its own tickets (the question may not
+                     be saved yet, so event_ids would still be empty). -->
+                <field
+                    name="restricted_ticket_ids"
+                    widget="many2many_tags"
+                    domain="[('event_id', '=', parent.id)]"
+                />
             </xpath>
         </field>
     </record>

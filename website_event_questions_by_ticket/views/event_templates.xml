@@ -26,7 +26,7 @@
         >
             <attribute
                 name="t-if"
-            >event._get_general_questions([x['id'] for x in tickets])</attribute>
+            >availability_check and limit_check and event._get_general_questions([x['id'] for x in tickets])</attribute>
         </xpath>
         <xpath
             expr="//t[@t-foreach='event.general_question_ids']"

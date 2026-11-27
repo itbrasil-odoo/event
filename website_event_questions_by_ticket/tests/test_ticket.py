@@ -49,3 +49,35 @@ class TestTicket(BaseCommon):
         self.assertNotIn(self.question_1, general_questions_1)
         general_questions_2 = self.event_1._get_general_questions(self.ticket_2.ids)
         self.assertNotIn(self.question_1, general_questions_2)
+
+    def test_general_question_limited_to_ticket(self):
+        question = self.env["event.question"].create(
+            {
+                "title": "General limited",
+                "once_per_order": True,
+                "event_ids": [Command.set(self.event_1.ids)],
+                "restricted_ticket_ids": [Command.set(self.ticket_1.ids)],
+            }
+        )
+        self.assertIn(question, self.event_1._get_general_questions(self.ticket_1.ids))
+        self.assertNotIn(
+            question, self.event_1._get_general_questions(self.ticket_2.ids)
+        )
+
+    def test_shared_question_not_hidden_in_other_event(self):
+        now = fields.Datetime.now()
+        event_2 = self.env["event.event"].create(
+            {
+                "name": "Event Two",
+                "date_begin": now + relativedelta(days=1),
+                "date_end": now + relativedelta(days=3),
+            }
+        )
+        ticket_b = self.env["event.event.ticket"].create(
+            {"name": "Ticket B", "event_id": event_2.id}
+        )
+        self.question_1.event_ids = [Command.link(event_2.id)]
+        self.assertIn(self.question_1, event_2._get_specific_questions(ticket_b.id))
+        self.assertNotIn(
+            self.question_1, self.event_1._get_specific_questions(self.ticket_2.id)
+        )
