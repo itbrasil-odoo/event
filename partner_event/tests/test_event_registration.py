@@ -6,7 +6,7 @@
 # Copyright 2025 Tecnativa - Víctor Martínez
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
 from psycopg2 import IntegrityError
@@ -93,9 +93,10 @@ class TestEventRegistration(BaseCommon):
 
     def test_data_update(self):
         event_2 = self.event_0.copy()
-        self.yesterday = datetime.now() - timedelta(days=1)
-        self.tomorrow = datetime.now() + timedelta(days=1)
-        self.last_month = datetime.now() - timedelta(days=30)
+        now = fields.Datetime.now()
+        self.yesterday = now - timedelta(days=1)
+        self.tomorrow = now + timedelta(days=1)
+        self.last_month = now - timedelta(days=30)
         # Set an old event
         event_2.write({"date_begin": self.last_month})
         event_2.write({"date_end": self.yesterday})
@@ -284,3 +285,49 @@ class TestEventRegistration(BaseCommon):
         self.assertEqual(
             sorted(partner_ids), sorted(attendee_partner.ids + extra_partner.ids)
         )
+
+    def test_write_booker_email_keeps_attendee(self):
+        reg = self.env["event.registration"].create(
+            {
+                "event_id": self.event_0.id,
+                "partner_id": self.partner_01.id,
+                "name": "Child keeps partner",
+            }
+        )
+        child = reg.attendee_partner_id
+        reg.write({"email": self.partner_01.email})
+        self.assertEqual(reg.attendee_partner_id, child)
+        self.assertEqual(reg.name, "Child keeps partner")
+
+    def test_partner_email_change_keeps_its_registrations(self):
+        older = self.env["res.partner"].create(
+            {"name": "Older", "email": "shared@x.example"}
+        )
+        event = self.event_0.copy(
+            {
+                "date_begin": fields.Datetime.add(fields.Datetime.now(), days=10),
+                "date_end": fields.Datetime.add(fields.Datetime.now(), days=11),
+            }
+        )
+        reg = self.env["event.registration"].create(
+            {"event_id": event.id, "name": "Own attendee", "email": "own@x.example"}
+        )
+        attendee = reg.attendee_partner_id
+        self.assertTrue(attendee)
+        self.assertNotEqual(attendee, older)
+        attendee.email = "shared@x.example"
+        self.assertEqual(reg.email, "shared@x.example")
+        self.assertEqual(reg.attendee_partner_id, attendee)
+
+    def test_email_wildcards_are_escaped(self):
+        self.env["res.partner"].create(
+            {"name": "Wrong", "email": "joaoxsilva@x.example"}
+        )
+        reg = self.env["event.registration"].create(
+            {
+                "event_id": self.event_0.id,
+                "name": "Joao",
+                "email": "joao_silva@x.example",
+            }
+        )
+        self.assertEqual(reg.attendee_partner_id.email, "joao_silva@x.example")

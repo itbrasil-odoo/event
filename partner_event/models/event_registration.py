@@ -9,6 +9,7 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools.sql import escape_like_value
 
 
 class EventRegistration(models.Model):
@@ -66,7 +67,7 @@ class EventRegistration(models.Model):
                     partner_email = Partner.browse(vals["partner_id"]).email
                 if attendee_email != partner_email:
                     # Look for a partner with that email
-                    clean_email = attendee_email.replace("%", "").replace("_", "\\_")
+                    clean_email = escape_like_value(attendee_email)
                     # Order was done for avoiding extra queries for sorting
                     attendee_partner = Partner.search(
                         [("email", "=ilike", clean_email)], limit=1, order="id"
@@ -98,6 +99,20 @@ class EventRegistration(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
+        if (
+            vals.get("email")
+            and "partner_id" not in vals
+            and not vals.get("attendee_partner_id")
+            and not self.env.context.get("partner_event_merging")
+        ):
+            # The booking partner of each registration decides: the booker's
+            # email is a fallback for the attendee, who keeps its partner.
+            for registration in self:
+                registration_vals = dict(vals)
+                if vals["email"] != registration.partner_id.email:
+                    registration._update_attendee_partner_id(registration_vals)
+                super(EventRegistration, registration).write(registration_vals)
+            return True
         self._update_attendee_partner_id(vals)
         return super().write(vals)
 
@@ -133,7 +148,9 @@ class EventRegistration(models.Model):
             registrations = self.filtered(
                 lambda x: x.event_id.date_end >= fields.Datetime.now()
             )
-            registrations.write(reg_data)
+            # The partner itself changed: keep it as the attendee instead of
+            # looking up another partner by the new email.
+            registrations.with_context(partner_event_merging=True).write(reg_data)
 
     @api.onchange("attendee_partner_id", "partner_id")
     def _onchange_partner_id(self):
@@ -143,8 +160,7 @@ class EventRegistration(models.Model):
             get_attendee_partner_address = {
                 "get_attendee_partner_address": self.attendee_partner_id,
             }
-            self = self.with_context(**get_attendee_partner_address)
-            for registration in self:
+            for registration in self.with_context(**get_attendee_partner_address):
                 if registration.partner_id:
                     vals = registration._synchronize_partner_values(
                         registration.partner_id
